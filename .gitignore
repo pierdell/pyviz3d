@@ -1,0 +1,9 @@
+# untrack .* hidden folders
+.*
+
+# ommit git files from this rule
+!.gitignore
+!.gitmodules
+
+# ignore cached compiled python
+*__pycache__*
