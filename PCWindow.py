@@ -48,13 +48,4 @@ class PCWindow:
         return self.window_thread.is_alive()
 
 
-if __name__ == "__main__":
-    window = PCWindow()
-    window.init()
-    for _ in range(1000):
-        time.sleep(1)
-        window.update_model(np.random.randn(1000, 3))
-        if not window.is_alive():
-            print("Dead window")
-            break
-    window.close()
+
