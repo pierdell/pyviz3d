@@ -52,6 +52,9 @@ float buffer_depth_to_real_depth(float depth)
 
 vec2 neighborContribution(float log2Depth, vec2 offset)
 {
+    // Code strongly inspired by 
+    // https://github.com/CesiumGS/cesium/blob/master/Source/Shaders/PostProcessStages/PointCloudEyeDomeLighting.glsl
+    
     float dist = EDL_DISTANCE;
     vec2 texCoordOrig = TexCoord + offset * dist;
     vec2 texCoord0 = TexCoord + offset * floor(dist);
@@ -100,7 +103,7 @@ void main() {
 }
 """
 
-    def __init__(self, edl_strength=10.0, edl_distance=1.0, with_edl: bool = True):
+    def __init__(self, edl_strength=100.0, edl_distance=1.0, with_edl: bool = True):
         super().__init__()
         self.edl_strength = edl_strength
         self.edl_distance = edl_distance
