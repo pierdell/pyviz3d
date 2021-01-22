@@ -19,29 +19,40 @@ class PCWindow:
         self.engine.point_size = pointcloud_size
         self.default_pc_color = default_pc_color
 
-        self.pc_model_id = 1
-        self.pc_model = PointCloudModel(np.zeros((1, 3), dtype=np.float32), default_color=default_pc_color)
-        self.engine.add_model(self.pc_model_id, self.pc_model)
-        self.window_thread = Thread(target=lambda: self.engine.main_loop())
+        self.pc_models = dict()
+        self.window_thread = None
 
     def init(self):
         """Initialize the window"""
+        if self.window_thread is None:
+            self.window_thread = Thread(target=lambda: self.engine.main_loop())
         self.window_thread.start()
 
-    def close(self):
+    def close(self, force_close: bool = False):
         """Closes the Pygame window"""
+        if force_close:
+            self.engine.force_close()
         self.window_thread.join()
+        self.window_thread = None
 
-    def update_model(self, pointcloud: np.ndarray, color: Optional[np.ndarray] = None):
+    def update_model(self, pc_id: int, pointcloud: np.ndarray,
+                     color: Optional[np.ndarray] = None,
+                     default_color: Optional[np.ndarray] = None):
         """Updates the PointCloud model held by the window"""
-        self.pc_model.set_pointcloud(pointcloud, color)
-        self.engine.update_model(self.pc_model_id)
+        if pc_id not in self.pc_models:
+            if default_color is None:
+                default_color = self.default_pc_color
+            pc_model = PointCloudModel(pointcloud, color, default_color=default_color)
+            self.pc_models[pc_id] = pc_model
+            self.engine.add_model(pc_id, pc_model)
+            return
 
-    # TODO
-    # def update_camera(self, position: np.ndarray):
-    #     """Updates the camera position programmatically"""
-    #
-    #     pass
+        self.pc_models[pc_id].set_pointcloud(pointcloud, color)
+        self.engine.update_model(pc_id)
+
+    def update_camera(self, camera_pose: np.ndarray):
+        """Updates the camera position programmatically"""
+        self.engine.update_camera(camera_pose)
 
     def is_alive(self):
         """Whether the Current window is still alive"""
@@ -49,12 +60,16 @@ class PCWindow:
 
 
 if __name__ == "__main__":
+
     window = PCWindow()
-    window.init()
-    for _ in range(1000):
-        time.sleep(1)
-        window.update_model(np.random.randn(1000, 3))
-        if not window.is_alive():
-            print("Dead window")
-            break
-    window.close()
+    try:
+        window.init()
+        for _ in range(1000):
+            time.sleep(1)
+            window.update_model(0, np.random.randn(1000, 3))
+            if not window.is_alive():
+                print("Dead window")
+                break
+        window.close()
+    except (KeyboardInterrupt, Exception):
+        window.close(True)

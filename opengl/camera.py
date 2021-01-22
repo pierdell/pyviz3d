@@ -35,6 +35,9 @@ class FPVCamera:
         self.angular_speed = 180.0
         self.radius_orientation_ratio = 0.25
 
+        # Allow an external agent to update the pose
+        self._allow_external_pose = True
+
     class States(Enum):
         NO_MODE = 0,
         FPV_MODE = 1,
@@ -42,10 +45,11 @@ class FPVCamera:
         ORIENTATION_MODE = 3
 
     def set_camera_pose(self, pose: np.ndarray):
-        assert_debug(pose.dtype == gl_float_np_dtype())
-        check_sizes(pose, [4, 4])
-        self.orientation = pose[:3, :3]
-        self.position = pose[:3, 3]
+        if self._allow_external_pose:
+            assert_debug(pose.dtype == gl_float_np_dtype())
+            check_sizes(pose, [4, 4])
+            self.orientation = pose[:3, :3]
+            self.position = pose[:3, 3]
 
     def get_projection_matrix(self):
         # Update the position
@@ -79,7 +83,7 @@ class FPVCamera:
         s_phi = np.sin(delta_phi)
         rotation_y = farray([[1.0, 0.0, 0.0], [0.0, c_phi, s_phi], [0.0, -s_phi, c_phi]])
 
-        # Apply roation along the front axis
+        # Apply rotation along the front axis
         delta_psi = rad(delta_rot * self.rotation_array[2])
         c_psi = np.cos(delta_psi)
         s_psi = np.sin(delta_psi)
@@ -109,10 +113,16 @@ class FPVCamera:
 
         if self.mode == self.States.FPV_MODE:
             if event.type == pg.KEYDOWN:
+                if event.key == pg.K_LSHIFT:
+                    self.translation_speed = 100
                 if event.key == pg.K_z:
                     self.direction_array[2] = 1.0
                 if event.key == pg.K_s:
                     self.direction_array[2] = -1.0
+                if event.key == pg.K_r:
+                    self.direction_array[1] = -1.0
+                if event.key == pg.K_f:
+                    self.direction_array[1] = 1.0
                 if event.key == pg.K_q:
                     self.direction_array[0] = 1.0
                 if event.key == pg.K_d:
@@ -121,11 +131,19 @@ class FPVCamera:
                     self.rotation_array[2] = 0.5
                 if event.key == pg.K_a:
                     self.rotation_array[2] = -0.5
+                if event.key == pg.K_p:
+                    self._allow_external_pose = not self._allow_external_pose
             elif event.type == pg.KEYUP:
+                if event.key == pg.K_LSHIFT:
+                    self.translation_speed = 10.0
                 if event.key == pg.K_z and self.direction_array[2] == 1.0:
                     self.direction_array[2] = 0.0
                 elif event.key == pg.K_s and self.direction_array[2] == -1.0:
                     self.direction_array[2] = 0.0
+                if event.key == pg.K_r and self.direction_array[1] == -1.0:
+                    self.direction_array[1] = 0.0
+                if event.key == pg.K_f and self.direction_array[1] == 1.0:
+                    self.direction_array[1] = 0.0
                 if event.key == pg.K_q and self.direction_array[0] == 1.0:
                     self.direction_array[0] = 0.0
                 elif event.key == pg.K_d and self.direction_array[0] == -1.0:
