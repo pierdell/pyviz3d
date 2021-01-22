@@ -10,9 +10,6 @@ class CameraAlbedoShader(Shader):
     A CameraAlbedoShader is a shader for simple Camera
     """
 
-    # The max number of point light lighting the scene which needs to be set at compile time in the shader
-    __max_num_point_lights = 3
-
     # ------------------------------------------------------------------------------------------------------------------
     # VERTEX SHADER SOURCE
     __vertex_shader = """

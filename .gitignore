@@ -7,3 +7,4 @@
 
 # ignore cached compiled python
 *__pycache__*
+*.pyc

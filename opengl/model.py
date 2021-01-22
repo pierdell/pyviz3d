@@ -117,3 +117,80 @@ class PointCloudModel(Model):
             check_sizes(self.default_color, [1, 3])
             color = self.default_color.repeat(self.num_points(), axis=0)
         self.color = color
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ScreenModel
+class ScreenModel(Model):
+    """A Simple Screen model which allows to display texture a screen"""
+
+    def __init__(self):
+        super().__init__()
+
+        self._is_initialized = False
+
+        # --------------
+        # OpenGL buffers
+        self.vao = None
+        self.vertex_bo = None
+
+    def init_model(self):
+        self._is_initialized = True
+        self._initialize_buffers()
+
+    @staticmethod
+    def num_points():
+        return 6
+
+    def _initialize_buffers(self):
+        self.vao = glGenVertexArrays(1)
+        self.vertex_bo = glGenBuffers(1)
+
+        glBindVertexArray(self.vao)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertex_bo)
+
+        data = np.array([
+            # First screen triangle
+            -1.0, 1.0, 0.0, 1.0,
+            -1.0, -1.0, 0.0, 0.0,
+            1.0, -1.0, 1.0, 0.0,
+
+            # Second screen triangle
+            -1.0, 1.0, 0.0, 1.0,
+            1.0, -1.0, 1.0, 0.0,
+            1.0, 1.0, 1.0, 1.0
+        ]).astype(np.float32)
+
+        glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
+
+        glVertexAttribPointer(self.points_location(),
+                              2,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              4 * type_size(np.float32),
+                              ctypes.c_void_p(0))
+        glEnableVertexAttribArray(self.points_location())
+
+        glVertexAttribPointer(self.tex_coords_location(),
+                              2,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              4 * type_size(np.float32),
+                              ctypes.c_void_p(2 * type_size(np.float32)))
+        glEnableVertexAttribArray(self.tex_coords_location())
+
+    def delete(self):
+        if self.vertex_bo is not None:
+            glDeleteBuffers(1, self.vertex_bo)
+        if self.vao is not None:
+            glDeleteVertexArrays(1, self.vao)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # OpenGL Shader variables and locations
+    @staticmethod
+    def points_location():
+        return 0
+
+    @staticmethod
+    def tex_coords_location():
+        return 1
