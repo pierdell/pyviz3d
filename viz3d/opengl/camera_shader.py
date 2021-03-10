@@ -1,6 +1,6 @@
-from opengl.gl_algebra import gl_transpose
-from opengl.model import PointCloudModel
-from opengl.shader import *
+from viz3d.opengl.gl_algebra import gl_transpose
+from viz3d.opengl.model import PointCloudModel, CamerasModel
+from viz3d.opengl.shader import *
 
 import numpy as np
 
@@ -17,6 +17,7 @@ class CameraAlbedoShader(Shader):
 
 layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec3 in_color;
+layout (location = 3) in mat4 in_model_to_world;
 
 uniform mat4 world_to_cam;
 uniform mat4 projection;
@@ -25,7 +26,7 @@ out vec3 _color;
 
 void main() {
     vec4 homogeneous = vec4(in_position, 1.0);
-    gl_Position = projection * world_to_cam * homogeneous; 
+    gl_Position = projection * world_to_cam * in_model_to_world * homogeneous; 
     _color = in_color;
 }
 """
@@ -61,7 +62,6 @@ void main() {
         assert_debug(world_to_cam is not None)
         assert_debug(projection is not None)
 
-        assert isinstance(model, PointCloudModel)
         pid = self.shader_program.gl_shader_program_id
         glUseProgram(pid)
 
@@ -70,7 +70,15 @@ void main() {
         glUniformMatrix4fv(self.get_ulocation("projection"), 1, gl_transpose(), projection)
 
         glBindVertexArray(model.vao)
-        glDrawArrays(GL_POINTS, 0, model.num_points())
+
+        if isinstance(model, PointCloudModel):
+            # Set Point size
+            glPointSize(model.model_data.point_size)
+            glDrawArraysInstanced(GL_POINTS, 0, model.num_points(), model.num_instances())
+        elif isinstance(model, CamerasModel):
+            glLineWidth(model.model_data.width)
+            glDrawElementsInstanced(GL_LINES, model.num_elements(),
+                                    GL_UNSIGNED_INT, ctypes.c_void_p(0), model.num_instances())
 
         # Release buffers
         glBindVertexArray(0)

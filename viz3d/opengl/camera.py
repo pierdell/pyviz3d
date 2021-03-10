@@ -1,7 +1,6 @@
 import pygame as pg
 
-from utils import assert_debug, check_sizes
-from opengl.gl_algebra import *
+from viz3d.opengl.gl_algebra import *
 from enum import Enum
 
 

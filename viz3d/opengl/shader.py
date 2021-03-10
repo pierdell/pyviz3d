@@ -2,11 +2,11 @@ from typing import Optional
 from abc import abstractmethod
 from itertools import count
 
-from utils import assert_debug
+from viz3d.utils import assert_debug
 from OpenGL.GL import *
 from OpenGL.GL import shaders
 
-from opengl.model import Model
+from viz3d.opengl.model import Model
 
 
 class ShaderProgram:
