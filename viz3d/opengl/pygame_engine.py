@@ -22,7 +22,8 @@ class ExplorationEngine:
     # ------------------------------------------------------------------------------------------------------------------
 
     def __init__(self, height: int = 720, width: int = 1080,
-                 point_size: int = 3, with_edl: bool = True, num_fps: int = 40):
+                 edl_strength: float = 1000, with_edl: bool = True, edl_distance: float = 1.0,
+                 num_fps: int = 40):
         super().__init__()
 
         self.height = height
@@ -42,14 +43,13 @@ class ExplorationEngine:
         self.depth_texture = None
 
         # Shader for the post processing and rendering on the screen
-        self.screen_shader = ScreenShader(with_edl=with_edl)
+        self.screen_shader = ScreenShader(with_edl=with_edl, edl_strength=edl_strength, edl_distance=edl_distance)
         self.screen_framebuffer = 0
         self.screen_model = ScreenModel()
 
         self.key_to_callback = {}
         self.models = dict()
         self.new_models = dict()
-        self.point_size = point_size
 
         # Messages (typically modified by another thread, than the main thread)
         self.models_to_update = set()
@@ -188,7 +188,6 @@ class ExplorationEngine:
         glEnable(GL_DEPTH_TEST)
         glClearColor(*self.background_color)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glPointSize(self.point_size)
 
         proj = self.camera.get_projection_matrix()
         camera_pose = self.camera.world_to_camera_mat()
