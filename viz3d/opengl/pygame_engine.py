@@ -243,7 +243,7 @@ class ExplorationEngine:
             for i in range(len(self.models_to_update)):
                 model_id = self.models_to_update.pop()
                 if model_id in self.models:
-                    self.models[model_id].update()
+                    self.models[model_id].update_model()
 
             # Update Camera Orientation if it was changed
             if self._new_camera_pose is not None:
