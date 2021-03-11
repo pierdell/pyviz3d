@@ -3,20 +3,22 @@ from typing import Optional, Union
 
 import numpy as np
 from OpenGL.constant import IntConstant
-from OpenGL.raw.GL._types import *
 
-from utils import check_sizes, assert_debug
+from viz3d.utils import check_sizes, assert_debug
 
 
 def gl_float_np_dtype():
+    """Returns the `numpy.dtype` for the vertex data"""
     return np.float32
 
 
 def gl_index_np_dtype():
+    """Returns the `numpy.dtype` used for indexing by OpenGL"""
     return np.uint32
 
 
-def type_size(type_: np.dtype):
+def type_size(type_: np.dtype) -> int:
+    """Returns the size of item for a given `numpy.dtype`"""
     return np.dtype(type_).itemsize
 
 

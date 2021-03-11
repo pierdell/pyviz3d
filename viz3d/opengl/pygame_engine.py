@@ -1,23 +1,29 @@
 import time
 
-from opengl.camera import *
-from opengl.model import *
-from opengl.camera_shader import CameraAlbedoShader
 from pygame.locals import *
+import pygame as pg
 
-from opengl.post_process_shader import ScreenShader
+from viz3d.opengl.camera import FPVCamera
+from viz3d.opengl.model import *
+from viz3d.opengl.camera_shader import CameraAlbedoShader
+from viz3d.opengl.post_process_shader import ScreenShader
 
 
 class ExplorationEngine:
     """
-    An Exploration Engine is an Rendering engine built with a user controlled camera
+    An Exploration Engine is a Rendering engine built with a user controlled camera
     Which allow him to move into a scene
+
+    Rendering is done in two passes :
+        - A first pass renders the scene into using a simple CameraAlbedoShader (no lighting) into a texture
+        - A second pass renders the texture into the screen (adding optionally some post-processing effects)
     """
 
     # ------------------------------------------------------------------------------------------------------------------
 
     def __init__(self, height: int = 720, width: int = 1080,
-                 point_size: int = 3, with_edl: bool = True, num_fps: int = 40):
+                 edl_strength: float = 1000, with_edl: bool = True, edl_distance: float = 1.0,
+                 num_fps: int = 40):
         super().__init__()
 
         self.height = height
@@ -37,14 +43,13 @@ class ExplorationEngine:
         self.depth_texture = None
 
         # Shader for the post processing and rendering on the screen
-        self.screen_shader = ScreenShader(with_edl=with_edl)
+        self.screen_shader = ScreenShader(with_edl=with_edl, edl_strength=edl_strength, edl_distance=edl_distance)
         self.screen_framebuffer = 0
         self.screen_model = ScreenModel()
 
         self.key_to_callback = {}
-        self.pc_models = dict()
+        self.models = dict()
         self.new_models = dict()
-        self.point_size = point_size
 
         # Messages (typically modified by another thread, than the main thread)
         self.models_to_update = set()
@@ -67,8 +72,7 @@ class ExplorationEngine:
     def process_user_input(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                pg.quit()
-                quit()
+                self._to_close = True
             # Process events
             self.camera.process_event(event)
 
@@ -144,24 +148,36 @@ class ExplorationEngine:
         for model_id in keys:
             model = self.new_models.pop(model_id)
             model.init_model()
-            assert_debug(model_id not in self.pc_models)
-            self.pc_models[model_id] = model
+            assert_debug(model_id not in self.models)
+            self.models[model_id] = model
 
     # ------------------------------------------------------------------------------------------------------------------
-    def add_model(self, model_id: int, pc_model: PointCloudModel):
+
+    def _build_model(self, model_data: ModelData) -> Model:
+        """Builds a model from model_data"""
+        if isinstance(model_data, PointCloudModelData):
+            return PointCloudModel(model_data)
+        elif isinstance(model_data, CamerasModelData):
+            return CamerasModel(model_data)
+        else:
+            raise NotImplementedError("")
+
+    def add_model(self, model_id: int, model_data: ModelData):
+        """Adds a model to set of models rendered by the engine"""
         self.delete_model(model_id)
-        self.new_models[model_id] = pc_model
+        self.new_models[model_id] = self._build_model(model_data)
 
     def delete_model(self, model_id):
-        if model_id in self.pc_models:
-            model = self.pc_models.pop(model_id)
+        if model_id in self.models:
+            model = self.models.pop(model_id)
             model.delete()
 
     def update_model(self, model_id):
-        if model_id in self.pc_models:
+        if model_id in self.models:
             self.models_to_update.add(model_id)
 
     def update_camera(self, camera_pose: np.ndarray):
+        check_sizes(camera_pose, [4, 4])
         self._new_camera_pose = camera_pose
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -172,13 +188,12 @@ class ExplorationEngine:
         glEnable(GL_DEPTH_TEST)
         glClearColor(*self.background_color)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glPointSize(self.point_size)
 
         proj = self.camera.get_projection_matrix()
         camera_pose = self.camera.world_to_camera_mat()
 
         # Draw each pointcloud model in the
-        for model_id, model in self.pc_models.items():
+        for model_id, model in self.models.items():
             self.first_pass_shader.draw_model(model, world_to_cam=camera_pose, projection=proj)
 
     def _draw_on_screen(self):
@@ -227,8 +242,8 @@ class ExplorationEngine:
             # Update models that need updating
             for i in range(len(self.models_to_update)):
                 model_id = self.models_to_update.pop()
-                if model_id in self.pc_models:
-                    self.pc_models[model_id].update()
+                if model_id in self.models:
+                    self.models[model_id].update_model()
 
             # Update Camera Orientation if it was changed
             if self._new_camera_pose is not None:
@@ -255,4 +270,6 @@ class ExplorationEngine:
                 if elapsed < s_per_frame:
                     pg.time.wait(int((s_per_frame - elapsed) * 1000))
 
-    # ------------------------------------------------------------------------------------------------------------------
+        # Suppresses the Pygame context
+        pg.display.quit()
+        pg.quit()

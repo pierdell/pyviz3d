@@ -1,11 +1,11 @@
-from opengl.model import ScreenModel
-from opengl.shader import *
+from viz3d.opengl.model import ScreenModel
+from viz3d.opengl.shader import *
 import numpy as np
 
 
 class ScreenShader(Shader):
     """
-    A CameraAlbedoShader is a shader for simple Camera
+    A Screen Shader Renders
     """
 
     # ------------------------------------------------------------------------------------------------------------------
