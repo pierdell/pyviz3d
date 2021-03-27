@@ -1,5 +1,5 @@
 from viz3d.opengl.gl_algebra import gl_transpose
-from viz3d.opengl.model import PointCloudModel, CamerasModel
+from viz3d.opengl.model import PointCloudModel, EllipsesModel, CamerasModel, LinesModel, VoxelsModel
 from viz3d.opengl.shader import *
 
 import numpy as np
@@ -79,6 +79,17 @@ void main() {
             glLineWidth(model.model_data.width)
             glDrawElementsInstanced(GL_LINES, model.num_elements(),
                                     GL_UNSIGNED_INT, ctypes.c_void_p(0), model.num_instances())
+        elif isinstance(model, EllipsesModel):
+            glEnable(GL_LINE_SMOOTH)
+            glDrawElementsInstanced(GL_TRIANGLES, model.num_elements(),
+                                    GL_UNSIGNED_INT, ctypes.c_void_p(0), model.num_instances())
+
+        elif isinstance(model, LinesModel) or isinstance(model, VoxelsModel):
+            glLineWidth(model.model_data.line_width)
+            glDrawElementsInstanced(GL_LINES, model.num_elements(),
+                                    GL_UNSIGNED_INT, ctypes.c_void_p(0), model.num_instances())
+        else:
+            raise NotImplementedError("Unrecognized model type")
 
         # Release buffers
         glBindVertexArray(0)

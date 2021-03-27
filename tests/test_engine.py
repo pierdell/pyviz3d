@@ -1,9 +1,8 @@
 import unittest
 import multiprocessing as mp
-
-from viz3d.opengl.pygame_engine import PointCloudModelData, farray
 from viz3d.engineprocess import *
-from viz3d.window import OpenGLWindow, CamerasModelData
+from viz3d.window import OpenGLWindow
+from viz3d.opengl.model import *
 
 
 class EngineTestCase(unittest.TestCase):
@@ -99,6 +98,59 @@ class EngineTestCase(unittest.TestCase):
         window.close()
 
         self.assertTrue(True)
+
+    def test_ellipses(self):
+        engine = ExplorationEngine(with_edl=True)
+        covariances = np.array([[[0.01, 0.0, 0.0],
+                                 [0.0, 1.0, 0.0],
+                                 [0.0, 0.0, 2.0]],
+                                [[1.0, 0.0, 0.0],
+                                 [0.0, 1.0, 0.0],
+                                 [0.0, 0.0, 1.5]],
+                                ])
+
+        engine.add_model(0, EllipsesModelData(ellipses_size=1.0, means=np.array([[1.0, 0.0, 0.0],
+                                                                                 [-10.0, 0.0, 0.0]]),
+                                              covariances=covariances))
+        engine.main_loop()
+
+        self.assertEqual(True, True)
+
+    def test_lines(self):
+        engine = ExplorationEngine(with_edl=True)
+        line_data = np.array([
+            0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+
+            0.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, -1.0,
+        ])
+        line_colors = np.array([
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ])
+        engine.add_model(0, LinesModelData(line_data=line_data.reshape(6, 2, 3), line_width=3.0,
+                                           line_color=line_colors.reshape(6, 3)))
+
+        engine.main_loop()
+
+        self.assertEqual(True, True)
+
+    def test_voxels(self):
+        engine = ExplorationEngine(with_edl=True)
+
+        voxel_points = np.random.randn(10000, 3)
+        engine.add_model(0, VoxelsModelData(voxel_points=voxel_points, voxel_size=0.5, line_width=10.0))
+
+        engine.main_loop()
+
+        self.assertEqual(True, True)
 
 
 if __name__ == '__main__':

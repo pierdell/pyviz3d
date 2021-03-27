@@ -78,6 +78,77 @@ class OpenGLWindow:
         """Deletes the model identified by `model_id`"""
         self._put_message(DeleteModel(model_id=model_id))
 
+    def set_lines(self,
+                  model_id: int,
+                  lines_data: np.ndarray,
+                  default_color: np.ndarray = np.zeros((1, 3), dtype=np.float32),
+                  line_width: float = 1.0,
+                  line_color: Optional[np.ndarray] = None):
+        """
+        Sets/Updates line models to be rendered in the OpenGL Window
+
+        Args:
+            model_id (int): The identifying integer of the model for the engine (will override previous models)
+            lines_data (np.ndarray): The array of lines to render `(N, 2, 3)`
+            default_color (np.ndarray): The default color of the lines (black by default)
+            line_width (float): The width of the lines rendered
+            line_color (np.ndarray): Optionally the color for each line `(N, 3)`
+        """
+        check_sizes(lines_data, [-1, 2, 3])
+        check_sizes(default_color, [1, 3])
+        check_sizes(line_color, [lines_data.shape[0], 3])
+        model_data = LinesModelData(default_color=default_color,
+                                    line_data=lines_data,
+                                    line_width=line_width,
+                                    line_color=line_color)
+        self._put_message(UpdateModel(model_id=model_id, model=model_data))
+
+    def set_voxels(self,
+                   model_id: int,
+                   points: np.ndarray,
+                   voxel_size: float = 1.0,
+                   default_color: np.ndarray = np.zeros((1, 3), dtype=np.float32),
+                   line_width: float = 1.0):
+        """
+        Sets/Updates voxel models to be rendered in the OpenGL Window
+
+        Args:
+            model_id (int): The identifying integer of the model for the engine (will override previous models)
+            points (np.ndarray): The array of points to render in a voxel grid `(N, 3)`
+            voxel_size (float): The size of the voxels to render
+            default_color (np.ndarray): The default color of the lines (black by default)
+            line_width (float): The width of the lines rendered
+        """
+        check_sizes(points, [-1, 3])
+        check_sizes(default_color, [1, 3])
+        model_data = VoxelsModelData(default_color=default_color,
+                                     voxel_points=points,
+                                     voxel_size=voxel_size,
+                                     line_width=line_width)
+        self._put_message(UpdateModel(model_id, model=model_data))
+
+    def set_ellipses(self,
+                     model_id: int,
+                     centers: Optional[np.ndarray] = None,
+                     covariances: Optional[np.ndarray] = None,
+                     default_color: np.ndarray = np.array([[1.0, 0.0, 0.0]], dtype=np.float32)):
+        """
+        Sets/Updates low-polygons ellipses models to be rendered in the OpenGL Window
+
+        Args:
+            model_id (int): The identifying integer of the model for the engine (will override previous models)
+            centers (np.ndarray): The centers of the ellipses to render (if None, a unique sphere will be rendered)
+                                  `(N, 3)`
+            covariances (np.ndarray): The symmetric matrices defining the shape of the ellipse
+                                      (typically a covariance matrix) `(N, 3, 3)`
+            default_color (np.ndarray): The default color of the lines (red by default)
+        """
+        check_sizes(centers, [-1, 3])
+        check_sizes(covariances, [-1, 3, 3])
+        check_sizes(default_color, [1, 3])
+        model_data = EllipsesModelData(default_color=default_color, means=centers, covariances=covariances)
+        self._put_message(UpdateModel(model_id, model=model_data))
+
     def set_cameras(self,
                     model_id: int,
                     positions: np.ndarray,

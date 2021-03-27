@@ -88,7 +88,8 @@ class ExplorationEngine:
         # Generate color texture for color attachment
         self.color_texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, self.color_texture)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.width, self.height, 0, GL_RGB, GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.width, self.height, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                     ctypes.c_void_p(0))
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
@@ -100,8 +101,8 @@ class ExplorationEngine:
         glBindTexture(GL_TEXTURE_2D, self.depth_texture)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, self.width, self.height,
                      0, GL_DEPTH_COMPONENT, GL_FLOAT, ctypes.c_void_p(0))
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
 
@@ -132,6 +133,8 @@ class ExplorationEngine:
         pg.init()
         window_size = (self.width, self.height)
         pg.display.set_mode(window_size, DOUBLEBUF | OPENGL)
+
+        glEnable(GL_MULTISAMPLE)
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         glViewport(0, 0, self.width, self.height)
 
@@ -156,10 +159,17 @@ class ExplorationEngine:
 
     def _build_model(self, model_data: ModelData) -> Model:
         """Builds a model from model_data"""
+        # Todo refactor with enum
         if isinstance(model_data, PointCloudModelData):
             return PointCloudModel(model_data)
         elif isinstance(model_data, CamerasModelData):
             return CamerasModel(model_data)
+        elif isinstance(model_data, EllipsesModelData):
+            return EllipsesModel(model_data)
+        elif isinstance(model_data, LinesModelData):
+            return LinesModel(model_data)
+        elif isinstance(model_data, VoxelsModelData):
+            return VoxelsModel(model_data)
         else:
             raise NotImplementedError("")
 
