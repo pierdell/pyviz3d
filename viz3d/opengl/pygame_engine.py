@@ -148,7 +148,8 @@ class ExplorationEngine:
         for model_id in keys:
             model = self.new_models.pop(model_id)
             model.init_model()
-            assert_debug(model_id not in self.models)
+            if model_id in self.models:
+                del self.models[model_id]
             self.models[model_id] = model
 
     # ------------------------------------------------------------------------------------------------------------------
