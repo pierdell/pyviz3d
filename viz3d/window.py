@@ -96,7 +96,8 @@ class OpenGLWindow:
         """
         check_sizes(lines_data, [-1, 2, 3])
         check_sizes(default_color, [1, 3])
-        check_sizes(line_color, [lines_data.shape[0], 3])
+        if line_color is not None:
+            check_sizes(line_color, [lines_data.shape[0], 3])
         model_data = LinesModelData(default_color=default_color,
                                     line_data=lines_data,
                                     line_width=line_width,
@@ -131,6 +132,7 @@ class OpenGLWindow:
                      model_id: int,
                      centers: Optional[np.ndarray] = None,
                      covariances: Optional[np.ndarray] = None,
+                     colors: Optional[np.ndarray] = None,
                      default_color: np.ndarray = np.array([[1.0, 0.0, 0.0]], dtype=np.float32)):
         """
         Sets/Updates low-polygons ellipses models to be rendered in the OpenGL Window
@@ -141,12 +143,14 @@ class OpenGLWindow:
                                   `(N, 3)`
             covariances (np.ndarray): The symmetric matrices defining the shape of the ellipse
                                       (typically a covariance matrix) `(N, 3, 3)`
+            colors (np.ndarray): The colors of the ellipses
             default_color (np.ndarray): The default color of the lines (red by default)
         """
         check_sizes(centers, [-1, 3])
         check_sizes(covariances, [-1, 3, 3])
         check_sizes(default_color, [1, 3])
-        model_data = EllipsesModelData(default_color=default_color, means=centers, covariances=covariances)
+        model_data = EllipsesModelData(default_color=default_color, colors=colors,
+                                       means=centers, covariances=covariances)
         self._put_message(UpdateModel(model_id, model=model_data))
 
     def set_cameras(self,

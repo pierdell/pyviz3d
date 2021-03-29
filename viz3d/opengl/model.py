@@ -438,8 +438,7 @@ class EllipsesModelData(ModelData):
     ellipses_size: float = 1.0  # The scale factor of the camera model
     covariances: Optional[np.ndarray] = None
     means: Optional[np.ndarray] = None
-
-    # TODO colors
+    colors: Optional[np.ndarray] = None
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -493,12 +492,11 @@ class EllipsesModel(Model):
 
         ellipses_data = vertex_and_normals[:, :3].reshape(1, -1, 3).repeat(num_ellipses, axis=0)
         ellipses_indices = indices.reshape(1, -1, 3).repeat(num_ellipses, axis=0)
-        for i in range(num_ellipses):
-            ellipses_indices[i] += num_points * i
+        ellipses_indices += (np.arange(num_ellipses) * num_points).reshape(num_ellipses, 1, 1)
 
         # Compute the square root of covariance matrices
         covariances = self.model_data.covariances
-        u, s, vt = np.linalg.svd(covariances)
+        u, s, vt = np.linalg.svd(covariances, hermitian=True)
         s = np.sqrt(s)
         diags = np.eye(3, dtype=np.float32).reshape(1, 3, 3).repeat(num_ellipses, axis=0)
         for i in range(3):
@@ -508,6 +506,7 @@ class EllipsesModel(Model):
 
         # Translate ellipse by their means
         ellipses_data += self.model_data.means.reshape(num_ellipses, 1, 3)
+        ellipses_color = self.model_data.colors.reshape(num_ellipses, 1, 3).repeat(num_points, axis=1).reshape(-1, 3)
 
         vertex_data = ellipses_data.reshape(num_ellipses * num_points, 3)
         element_indices = ellipses_indices.reshape(num_ellipses * num_triangles * 3).astype(gl_index_np_dtype())
@@ -518,7 +517,7 @@ class EllipsesModel(Model):
         # Populate the Vertex Buffer Object with vertex data
         glBindBuffer(GL_ARRAY_BUFFER, self.vertex_bo)
         data = np.concatenate([self.model_data.ellipses_size * vertex_data,
-                               self.model_data.default_color.repeat(vertex_data.shape[0], axis=0)],
+                               ellipses_color],
                               axis=1).astype(np.float32)
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, self._storage_mode)
 
@@ -542,7 +541,7 @@ class EllipsesModel(Model):
 
         # Populate the Element Buffer Object with the edge indices
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vertex_ebo)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, element_indices.nbytes, element_indices, GL_STATIC_DRAW)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, element_indices.nbytes, element_indices, self._storage_mode)
 
     def delete(self):
         glDeleteBuffers(1, self.vertex_bo)
@@ -570,7 +569,11 @@ class EllipsesModel(Model):
                 diff = np.max(abs(covariances.transpose(0, 2, 1) - covariances))
                 assert_debug(diff == 0.0, "Covariance matrices must be symmetric")
 
-        # TODO COLOR
+        if _model_data.colors is not None:
+            check_sizes(_model_data.colors, [_model_data.means.shape[0], 3])
+            _model_data.colors = _model_data.colors.astype(np.float32)
+        else:
+            _model_data.colors = _model_data.default_color.reshape(1, 3).repeat(_model_data.shape[0], axis=0)
 
         return _model_data
 
@@ -818,7 +821,7 @@ class VoxelsModel(Model):
 
         # Populate the Element Buffer Object with the edge indices
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vertex_ebo)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, voxel_edge_indices.nbytes, voxel_edge_indices, GL_STATIC_DRAW)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, voxel_edge_indices.nbytes, voxel_edge_indices, GL_DYNAMIC_DRAW)
 
     def delete(self):
         glDeleteBuffers(1, self.vertex_bo)
