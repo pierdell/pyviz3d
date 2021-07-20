@@ -23,7 +23,7 @@ class ExplorationEngine:
 
     def __init__(self, height: int = 720, width: int = 1080,
                  edl_strength: float = 1000, with_edl: bool = True, edl_distance: float = 1.0,
-                 num_fps: int = 40):
+                 num_fps: int = 40, background_color: Optional[np.ndarray] = None):
         super().__init__()
 
         self.height = height
@@ -31,7 +31,13 @@ class ExplorationEngine:
         self.camera = FPVCamera(self.height, self.width)
         self.num_fps = num_fps
 
-        self.background_color = np.array([1.0, 1.0, 1.0, 1.0], dtype=np.float32)
+        if background_color is None:
+            background_color = np.array([1.0, 1.0, 1.0, 1.0], dtype=np.float32)
+        elif isinstance(background_color, list):
+            background_color = np.array(background_color).reshape(4)
+
+        check_sizes(background_color, [4])
+        self.background_color = background_color.astype(np.float32)
         self.is_initialized = False
 
         # Shader for the first pass
@@ -170,6 +176,8 @@ class ExplorationEngine:
             return LinesModel(model_data)
         elif isinstance(model_data, VoxelsModelData):
             return VoxelsModel(model_data)
+        elif isinstance(model_data, PosesModelData):
+            return PosesModel(model_data)
         else:
             raise NotImplementedError("")
 

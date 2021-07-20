@@ -347,6 +347,109 @@ class CamerasModel(Model):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+@dataclass
+class PosesModelData(ModelData):
+    """PosesModelData"""
+    scale: float = 1.0  # The scale factor of the camera model
+    width: float = 2  # Width of the line defining the camera model
+
+
+class PosesModel(Model):
+    """A Model to render of camera poses (using the robotics convention)"""
+
+    __vertex_data = farray([
+        0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+        1., 0.0, 0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        0., 1.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.6, 1.0,
+        0., 0.0, 1.0, 0.0, 0.6, 1.0
+    ]).reshape(-1, 6)
+
+    __edge_indices = idarray([
+        0, 1,
+        2, 3,
+        4, 5
+    ])
+
+    def __init__(self,
+                 model_data: PosesModelData,
+                 storage_mode: str = "dynamic"):
+        super().__init__(model_data)
+
+        self._is_initialized = False
+
+        # --------------
+        # OpenGL buffers
+        self.vertex_bo = None
+        self.vertex_ebo = None
+        self.color_bo = None
+
+        assert_debug(storage_mode in ["dynamic", "static"])
+        if storage_mode == "dynamic":
+            self._storage_mode = GL_DYNAMIC_DRAW
+        else:
+            self._storage_mode = GL_STATIC_DRAW
+
+    def num_elements(self):
+        return self.__edge_indices.shape[0]
+
+    def init_model(self):
+        self._is_initialized = True
+        self.init_buffers()
+        self.update_model()
+
+    def init_buffers(self):
+        super().init_buffers()
+        self.vertex_bo = glGenBuffers(1)
+        self.vertex_ebo = glGenBuffers(1)
+
+    def update_model(self):
+        super().update_model()
+        glBindVertexArray(self.vao)
+
+        # Populate the Vertex Buffer Object with vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertex_bo)
+        data = np.copy(self.__vertex_data).astype(np.float32)
+        data[:, :3] *= self.model_data.scale
+        glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, self._storage_mode)
+
+        # Define the point attribute in the defined buffer
+        glVertexAttribPointer(self.points_location(),
+                              3,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              6 * type_size(np.float32),
+                              ctypes.c_void_p(0))
+        glEnableVertexAttribArray(self.points_location())
+
+        # Define the color attribute in the defined buffer
+        glVertexAttribPointer(self.color_location(),
+                              3,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              6 * type_size(np.float32),
+                              ctypes.c_void_p(3 * type_size(np.float32)))
+        glEnableVertexAttribArray(self.color_location())
+
+        # Populate the Element Buffer Object with the edge indices
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vertex_ebo)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.__edge_indices.nbytes, self.__edge_indices, GL_STATIC_DRAW)
+
+    def delete(self):
+        glDeleteBuffers(1, self.vertex_bo)
+        glDeleteVertexArrays(1, self.vao)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def verify_model_data(self, _model_data: Optional[ModelData]):
+        """Safe setter which verifies that the Point Cloud data is correct"""
+        assert_debug(_model_data is not None and isinstance(_model_data, PosesModelData))
+        if _model_data.default_color is None:
+            _model_data = dataclasses.replace(_model_data, default_color=np.zeros((1, 3), dtype=np.float32))
+        return _model_data
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # ScreenModel
 class ScreenModel(Model):
     """A Simple Screen model which allows to display texture a screen"""
@@ -573,7 +676,7 @@ class EllipsesModel(Model):
             check_sizes(_model_data.colors, [_model_data.means.shape[0], 3])
             _model_data.colors = _model_data.colors.astype(np.float32)
         else:
-            _model_data.colors = _model_data.default_color.reshape(1, 3).repeat(_model_data.shape[0], axis=0)
+            _model_data.colors = _model_data.default_color.reshape(1, 3).repeat(_model_data.means.shape[0], axis=0)
 
         return _model_data
 

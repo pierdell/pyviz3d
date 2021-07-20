@@ -174,10 +174,24 @@ class OpenGLWindow:
         check_sizes(positions, [-1, 4, 4])
         check_sizes(default_color, [-1, 3])
 
-        model_data = CamerasModelData(instance_model_to_world=positions,
+        model_data = CamerasModelData(instance_model_to_world=positions.astype(np.float32),
                                       default_color=default_color,
                                       width=line_width,
                                       camera_size=scale)
+        self._put_message(UpdateModel(model_id=model_id, model=model_data))
+
+    def set_poses(self,
+                  model_id: int,
+                  positions: np.ndarray,
+                  line_width: float = 1.0,
+                  scale: float = 1.0):
+        """
+        Sets/Updates the poses model to be rendered in the OpenGL Window
+        """
+        check_sizes(positions, [-1, 4, 4])
+        model_data = PosesModelData(instance_model_to_world=positions.astype(np.float32),
+                                    width=line_width,
+                                    scale=scale)
         self._put_message(UpdateModel(model_id=model_id, model=model_data))
 
     def set_pointcloud(self,

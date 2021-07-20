@@ -152,6 +152,19 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(True, True)
 
+    def test_poses(self):
+        engine = ExplorationEngine(with_edl=True)
+
+        poses = np.zeros((2, 4, 4), dtype=np.float32)
+        poses[0] = np.eye(4, dtype=np.float32)
+        poses[1] = np.eye(4, dtype=np.float32)
+        poses[1, 0, 3] = 10.0
+        engine.add_model(0, PosesModelData(instance_model_to_world=poses, scale=1, width=3.0))
+
+        engine.main_loop()
+
+        self.assertEqual(True, True)
+
 
 if __name__ == '__main__':
     unittest.main()
