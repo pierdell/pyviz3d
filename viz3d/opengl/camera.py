@@ -10,7 +10,10 @@ class FPVCamera:
         self.height = height
         self.width = width
 
-        # Pose vector for FPS navigation
+        # Absolute camera pose (typically set when tracking an object)
+        self.absolute_world_to_cam = np.eye(4, dtype=np.float32)
+
+        # Relative camera pose
         self.orientation = np.eye(3, dtype=np.float32)
         self.position = np.array([0, 0, 10], dtype=np.float32)
 
@@ -43,12 +46,11 @@ class FPVCamera:
         MOVE_MODEL_MODE = 2,
         ORIENTATION_MODE = 3
 
-    def set_camera_pose(self, pose: np.ndarray):
+    def set_camera_pose(self, absolute_world_to_cam: np.ndarray):
         if self._allow_external_pose:
-            assert_debug(pose.dtype == gl_float_np_dtype())
-            check_sizes(pose, [4, 4])
-            self.orientation = pose[:3, :3]
-            self.position = pose[:3, 3]
+            assert_debug(absolute_world_to_cam.dtype == gl_float_np_dtype())
+            check_sizes(absolute_world_to_cam, [4, 4])
+            self.absolute_world_to_cam = absolute_world_to_cam
 
     def get_projection_matrix(self):
         # Update the position
@@ -95,6 +97,7 @@ class FPVCamera:
         pose = farray(np.eye(4, dtype=np.float32))
         pose[:3, :3] = self.orientation.T
         pose[:3, 3] = - self.orientation.T @ self.position
+        pose = pose.dot(np.linalg.inv(self.absolute_world_to_cam))
 
         return pose
 
@@ -112,6 +115,13 @@ class FPVCamera:
 
         if self.mode == self.States.FPV_MODE:
             if event.type == pg.KEYDOWN:
+                if event.key == pg.K_p:
+                    # Reset the absolute_pose to the default position
+                    self.absolute_world_to_cam = np.eye(4, dtype=np.float32)
+                if event.key == pg.K_o:
+                    # Reset the relative pose to the default position
+                    self.orientation = np.eye(3, dtype=np.float32)
+                    self.position = np.array([0, 0, 10], dtype=np.float32)
                 if event.key == pg.K_LSHIFT:
                     self.translation_speed = 100
                 if event.key == pg.K_z:

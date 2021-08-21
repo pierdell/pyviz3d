@@ -81,7 +81,7 @@ class EngineProcess:
 
             message_dump = self._queue.get()
             message: Message = pickle.loads(message_dump)
-            logging.info(f"Received message : {type(message)} (id={id(message)})")
+            logging.debug(f"Received message : {type(message)} (id={id(message)})")
 
             self.handle_message(message)
 
