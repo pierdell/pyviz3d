@@ -211,9 +211,9 @@ class PointCloudModel(Model):
         self._last_num_points = self.model_data.xyz.shape[0]
 
     def delete(self):
-        glDeleteBuffers(1, self.vertex_bo)
-        glDeleteBuffers(1, self.instance_pose_bo)
-        glDeleteVertexArrays(1, self.vao)
+        glDeleteVertexArrays(1, int(self.vao))
+        glDeleteBuffers(1, int(self.vertex_bo))
+        glDeleteBuffers(1, int(self.instance_pose_bo))
 
     # ------------------------------------------------------------------------------------------------------------------
     def verify_model_data(self, _model_data: Optional[ModelData]):

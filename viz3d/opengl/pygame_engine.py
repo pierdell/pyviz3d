@@ -59,6 +59,7 @@ class ExplorationEngine:
 
         # Messages (typically modified by another thread, than the main thread)
         self.models_to_update = set()
+        self.models_to_delete = set()
         self._to_close: bool = False
         self._new_camera_pose: Optional[np.ndarray] = None
 
@@ -248,6 +249,11 @@ class ExplorationEngine:
         fps = self.num_fps
         s_per_frame = 1.0 / fps
         while True:
+
+            for i in range(len(self.models_to_delete)):
+                model_id = self.models_to_delete.pop()
+                if model_id in self.models:
+                    self.delete_model(model_id)
 
             # Close if the corresponding signal is activated
             if self._to_close:

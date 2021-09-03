@@ -167,7 +167,7 @@ class EngineProcess:
             self._engine.update_model(model_id)
 
     def __delete_model(self, model_id: int):
-        self._engine.delete_model(model_id)
+        self._engine.models_to_delete.add(model_id)
 
     def __update_camera(self, camera_position: np.ndarray):
         self._engine.update_camera(camera_position)
