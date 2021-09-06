@@ -1,0 +1,2 @@
+pygame
+pyOpenGL>=3.1
